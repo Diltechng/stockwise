@@ -1,76 +1,156 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { ChangeEvent, FormEvent, useState } from "react";
 import Link from "next/link";
-import Cookies from "js-cookie";
 import { toast } from "sonner";
-import { Package, ArrowRight, Loader2 } from "lucide-react";
-import { authService } from "@/lib/services/auth.service";
+import { Package, ArrowRight } from "lucide-react";
+
+const ROLE = {
+  STAFF: "staff",
+  ADMIN: "admin",
+} as const;
 
 export default function RegisterPage() {
+  const [formData, setFormData] = useState({
+    full_name: "",
+    email: "",
+    password: "",
+    role: ROLE.STAFF,
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    try {
+      setLoading(true);
+
+      const response = await fetch("http://localhost:4000/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create account");
+      }
+
+      toast.success("Account created successfully");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Something went wrong");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md">
-      <div className="flex items-center gap-3 mb-10">
-        <div className="w-10 h-10 bg-lime rounded-xl flex items-center justify-center">
-          <Package className="w-5 h-5 text-ink-900" />
+      <div className="mb-10 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime">
+          <Package className="h-5 w-5 text-ink-900" />
         </div>
-        <span
-          className="text-xl font-semibold text-ink-50"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          StockWise
-        </span>
+
+        <span className="text-xl font-semibold text-ink-50">StockWise</span>
       </div>
 
       <div className="card p-8">
-        <h1
-          className="text-2xl font-semibold text-ink-50 mb-1"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
+        <h1 className="mb-1 text-2xl font-semibold text-ink-50">
           Create account
         </h1>
-        <p className="text-sm text-ink-400 mb-8">Join your team on StockWise</p>
+
+        <p className="mb-8 text-sm text-ink-400">
+          Join your team on StockWise
+        </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
             <label className="label">Full name</label>
-            <input className="input" placeholder="Jane Smith" required />
-          </div>
-          <div>
-            <label className="label">Email address</label>
+
             <input
-              type="email"
+              type="text"
+              name="full_name"
               className="input"
-              placeholder="you@company.com"
+              placeholder="Jane Smith"
+              value={formData.full_name}
+              onChange={handleChange}
+              required
             />
           </div>
+
+          <div>
+            <label className="label">Email address</label>
+
+            <input
+              type="email"
+              name="email"
+              className="input"
+              placeholder="you@company.com"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
           <div>
             <label className="label">Password</label>
-            <input type="password" className="input" placeholder="••••••••" />
+
+            <input
+              type="password"
+              name="password"
+              className="input"
+              placeholder="••••••••"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
           </div>
+
           <div>
             <label className="label">Role</label>
-            <select className="input">
-              <option value="staff">Staff</option>
-              <option value="admin">Admin</option>
+
+            <select
+              name="role"
+              className="input"
+              value={formData.role}
+              onChange={handleChange}
+            >
+              <option value={ROLE.STAFF}>Staff</option>
+              <option value={ROLE.ADMIN}>Admin</option>
             </select>
           </div>
 
           <button
             type="submit"
-            className="btn-primary flex items-center justify-center gap-2 mt-2"
+            disabled={loading}
+            className="btn-primary mt-2 flex items-center justify-center gap-2"
           >
-            Create account <ArrowRight className="w-4 h-4" />
+            {loading ? "Creating..." : "Create account"}
+
+            <ArrowRight className="h-4 w-4" />
           </button>
         </form>
 
-        <p className="text-sm text-ink-500 text-center mt-6">
+        <p className="mt-6 text-center text-sm text-ink-500">
           Already have an account?{" "}
-          <Link
-            href="/auth/login"
-            className="text-lime hover:text-lime-200 transition-colors"
-          >
+          <Link href="/auth/login" className="text-lime hover:text-lime-200">
             Sign in
           </Link>
         </p>
