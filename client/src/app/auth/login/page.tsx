@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Package } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
@@ -11,7 +12,9 @@ export default function LoginPage() {
 
   const router = useRouter();
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    e: FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
     e.preventDefault();
 
     setLoading(true);
@@ -22,38 +25,47 @@ export default function LoginPage() {
       const email = formData.get("email");
       const password = formData.get("password");
 
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "http://localhost:4000/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
+      );
 
       const data = await response.json();
-
-      console.log(data);
-
-      sessionStorage.setItem("user", JSON.stringify(data.user));
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to login");
       }
 
-      // save token temporarily
-      sessionStorage.setItem("token", data.token);
+      if (!data.user) {
+        throw new Error("User data not returned");
+      }
 
-      alert("Login successful");
+      sessionStorage.setItem("user", JSON.stringify(data.user));
 
-      // redirect to dashboard
+      if (data.token) {
+        sessionStorage.setItem("token", data.token);
+      }
+
+      toast.success("Login successful");
+
       router.push("/dashboard");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
 
-      alert(error.message || "Failed to login");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to login",
+      );
     } finally {
       setLoading(false);
     }
@@ -114,7 +126,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-300"
-                onClick={() => setShowPw(!showPw)}
+                onClick={() => setShowPw((prev) => !prev)}
               >
                 {showPw ? "Hide" : "Show"}
               </button>

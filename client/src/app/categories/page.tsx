@@ -7,7 +7,19 @@ import Modal from "@/components/ui/Modal";
 import ConfirmDelete from "@/components/ui/ConfirmDelete";
 import EmptyState from "@/components/ui/EmptyState";
 
-const EMPTY = {
+type Category = {
+  id: number;
+  name: string;
+  description: string;
+  products_count: number;
+};
+
+type CategoryForm = {
+  name: string;
+  description: string;
+};
+
+const EMPTY: CategoryForm = {
   name: "",
   description: "",
 };
@@ -15,7 +27,7 @@ const EMPTY = {
 export default function CategoriesPage() {
   const isAdmin = true;
 
-  const [categories, setCategories] = useState([
+  const [categories, setCategories] = useState<Category[]>([
     {
       id: 1,
       name: "Accessories",
@@ -31,10 +43,10 @@ export default function CategoriesPage() {
   ]);
 
   const [modalOpen, setModalOpen] = useState(false);
-  const [editItem, setEditItem] = useState<any>(null);
+  const [editItem, setEditItem] = useState<Category | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
-  const [form, setForm] = useState(EMPTY);
+  const [form, setForm] = useState<CategoryForm>(EMPTY);
 
   const isLoading = false;
   const isBusy = false;
@@ -51,7 +63,7 @@ export default function CategoriesPage() {
     setForm(EMPTY);
   };
 
-  const handleEdit = (category: any) => {
+  const handleEdit = (category: Category) => {
     setEditItem(category);
 
     setForm({
@@ -62,7 +74,7 @@ export default function CategoriesPage() {
     setModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (editItem) {
@@ -104,7 +116,7 @@ export default function CategoriesPage() {
         <div>
           <h1 className="page-title">Categories</h1>
 
-          <p className="text-sm text-ink-400 mt-1">
+          <p className="mt-1 text-sm text-ink-400">
             Organise products by category
           </p>
         </div>
@@ -114,7 +126,7 @@ export default function CategoriesPage() {
             onClick={openCreate}
             className="btn-primary flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="h-4 w-4" />
             Add Category
           </button>
         )}
@@ -123,8 +135,8 @@ export default function CategoriesPage() {
       {/* Content */}
       {isLoading ? (
         <div className="card">
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="w-6 h-6 animate-spin text-lime" />
+          <div className="flex h-48 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-lime" />
           </div>
         </div>
       ) : categories.length === 0 ? (
@@ -138,53 +150,55 @@ export default function CategoriesPage() {
                 onClick={openCreate}
                 className="btn-primary flex items-center gap-2"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="h-4 w-4" />
                 Add Category
               </button>
             ) : null
           }
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {categories.map((category) => (
             <div
               key={category.id}
-              className="card p-5 flex flex-col gap-3 group"
+              className="card group flex flex-col gap-3 p-5"
             >
               <div className="flex items-start justify-between">
-                <div className="w-10 h-10 rounded-xl bg-lime/10 border border-lime/20 flex items-center justify-center">
-                  <Tag className="w-5 h-5 text-lime" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-lime/20 bg-lime/10">
+                  <Tag className="h-5 w-5 text-lime" />
                 </div>
 
                 {isAdmin && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
                       onClick={() => handleEdit(category)}
-                      className="p-1.5 rounded-lg text-ink-500 hover:text-lime hover:bg-ink-700 transition-colors"
+                      className="rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-ink-700 hover:text-lime"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="h-3.5 w-3.5" />
                     </button>
 
                     <button
                       onClick={() => setDeleteId(category.id)}
-                      className="p-1.5 rounded-lg text-ink-500 hover:text-red-400 hover:bg-red-900/20 transition-colors"
+                      className="rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-red-900/20 hover:text-red-400"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 )}
               </div>
 
               <div>
-                <h3 className="font-semibold text-ink-100">{category.name}</h3>
+                <h3 className="font-semibold text-ink-100">
+                  {category.name}
+                </h3>
 
-                <p className="text-xs text-ink-500 mt-0.5 line-clamp-2">
+                <p className="mt-0.5 line-clamp-2 text-xs text-ink-500">
                   {category.description || "No description"}
                 </p>
               </div>
 
-              <div className="flex items-center gap-1.5 mt-auto pt-2 border-t border-ink-700">
-                <Package className="w-3.5 h-3.5 text-ink-500" />
+              <div className="mt-auto flex items-center gap-1.5 border-t border-ink-700 pt-2">
+                <Package className="h-3.5 w-3.5 text-ink-500" />
 
                 <span className="text-xs text-ink-400">
                   {category.products_count} products
@@ -195,7 +209,6 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {/* Modal */}
       <Modal
         open={modalOpen}
         onClose={closeModal}
@@ -251,7 +264,7 @@ export default function CategoriesPage() {
               className="btn-primary flex items-center gap-2"
               disabled={isBusy}
             >
-              {isBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
 
               {editItem ? "Save Changes" : "Create"}
             </button>
@@ -259,9 +272,8 @@ export default function CategoriesPage() {
         </form>
       </Modal>
 
-      {/* Delete Confirm */}
       <ConfirmDelete
-        open={!!deleteId}
+        open={Boolean(deleteId)}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         loading={false}

@@ -5,12 +5,17 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Package, ArrowRight } from "lucide-react";
 
+const ROLE = {
+  STAFF: "staff",
+  ADMIN: "admin",
+} as const;
+
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
     password: "",
-    role: "staff",
+    role: ROLE.STAFF,
   });
 
   const [loading, setLoading] = useState(false);
@@ -18,10 +23,10 @@ export default function RegisterPage() {
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -40,13 +45,17 @@ export default function RegisterPage() {
 
       const data = await response.json();
 
-      if (data.success) {
-        toast.success("Account created successfully");
-      } else {
-        toast.error(data.error);
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create account");
       }
-    } catch (error) {
-      toast.error("Something went wrong");
+
+      toast.success("Account created successfully");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
@@ -54,20 +63,22 @@ export default function RegisterPage() {
 
   return (
     <div className="w-full max-w-md">
-      <div className="flex items-center gap-3 mb-10">
-        <div className="w-10 h-10 bg-lime rounded-xl flex items-center justify-center">
-          <Package className="w-5 h-5 text-ink-900" />
+      <div className="mb-10 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime">
+          <Package className="h-5 w-5 text-ink-900" />
         </div>
 
         <span className="text-xl font-semibold text-ink-50">StockWise</span>
       </div>
 
       <div className="card p-8">
-        <h1 className="text-2xl font-semibold text-ink-50 mb-1">
+        <h1 className="mb-1 text-2xl font-semibold text-ink-50">
           Create account
         </h1>
 
-        <p className="text-sm text-ink-400 mb-8">Join your team on StockWise</p>
+        <p className="mb-8 text-sm text-ink-400">
+          Join your team on StockWise
+        </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
@@ -112,7 +123,7 @@ export default function RegisterPage() {
             />
           </div>
 
-        <div>
+          <div>
             <label className="label">Role</label>
 
             <select
@@ -121,22 +132,23 @@ export default function RegisterPage() {
               value={formData.role}
               onChange={handleChange}
             >
-              <option value="staff">Staff</option>
-              <option value="admin">Admin</option>
+              <option value={ROLE.STAFF}>Staff</option>
+              <option value={ROLE.ADMIN}>Admin</option>
             </select>
           </div>
 
           <button
             type="submit"
-            className="btn-primary flex items-center justify-center gap-2 mt-2"
+            disabled={loading}
+            className="btn-primary mt-2 flex items-center justify-center gap-2"
           >
             {loading ? "Creating..." : "Create account"}
 
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="h-4 w-4" />
           </button>
         </form>
 
-        <p className="text-sm text-ink-500 text-center mt-6">
+        <p className="mt-6 text-center text-sm text-ink-500">
           Already have an account?{" "}
           <Link href="/auth/login" className="text-lime hover:text-lime-200">
             Sign in
