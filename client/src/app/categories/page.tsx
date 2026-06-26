@@ -1,21 +1,113 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Tag, Loader2, Package } from "lucide-react";
-import { toast } from "sonner";
-import { categoriesService } from "@/lib/services/categories.service";
-import { Category } from "@/types";
+
 import Modal from "@/components/ui/Modal";
 import ConfirmDelete from "@/components/ui/ConfirmDelete";
 import EmptyState from "@/components/ui/EmptyState";
-import { useAuth } from "@/hooks/useAuth";
 
-const EMPTY = { name: "", description: "" };
+type Category = {
+  id: number;
+  name: string;
+  description: string;
+  products_count: number;
+};
+
+type CategoryForm = {
+  name: string;
+  description: string;
+};
+
+const EMPTY: CategoryForm = {
+  name: "",
+  description: "",
+};
 
 export default function CategoriesPage() {
   const isAdmin = true;
-  const 
+
+  const [categories, setCategories] = useState<Category[]>([
+    {
+      id: 1,
+      name: "Accessories",
+      description: "Computer accessories and peripherals",
+      products_count: 20,
+    },
+    {
+      id: 2,
+      name: "Electronics",
+      description: "Electronic devices and gadgets",
+      products_count: 12,
+    },
+  ]);
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editItem, setEditItem] = useState<Category | null>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  const [form, setForm] = useState<CategoryForm>(EMPTY);
+
+  const isLoading = false;
+  const isBusy = false;
+
+  const openCreate = () => {
+    setEditItem(null);
+    setForm(EMPTY);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditItem(null);
+    setForm(EMPTY);
+  };
+
+  const handleEdit = (category: Category) => {
+    setEditItem(category);
+
+    setForm({
+      name: category.name,
+      description: category.description || "",
+    });
+
+    setModalOpen(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (editItem) {
+      setCategories((prev) =>
+        prev.map((c) =>
+          c.id === editItem.id
+            ? {
+                ...c,
+                name: form.name,
+                description: form.description,
+              }
+            : c,
+        ),
+      );
+    } else {
+      setCategories((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          name: form.name,
+          description: form.description,
+          products_count: 0,
+        },
+      ]);
+    }
+
+    closeModal();
+  };
+
+  const handleDelete = () => {
+    setCategories((prev) => prev.filter((c) => c.id !== deleteId));
+    setDeleteId(null);
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,23 +115,31 @@ export default function CategoriesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Categories</h1>
-          <p className="text-sm text-ink-400 mt-1">
+
+          <p className="mt-1 text-sm text-ink-400">
             Organise products by category
           </p>
         </div>
+
         {isAdmin && (
           <button
+            onClick={openCreate}
             className="btn-primary flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" /> Add Category
+            <Plus className="h-4 w-4" />
+            Add Category
           </button>
         )}
       </div>
 
-      {/* Grid */}
-        <div className="flex items-center justify-center h-48">
-          <Loader2 className="w-6 h-6 animate-spin text-lime" />
+      {/* Content */}
+      {isLoading ? (
+        <div className="card">
+          <div className="flex h-48 items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-lime" />
+          </div>
         </div>
+      ) : categories.length === 0 ? (
         <EmptyState
           icon={Tag}
           title="No categories yet"
@@ -47,71 +147,109 @@ export default function CategoriesPage() {
           action={
             isAdmin ? (
               <button
+                onClick={openCreate}
                 className="btn-primary flex items-center gap-2"
               >
-                <Plus className="w-4 h-4" /> Add Category
+                <Plus className="h-4 w-4" />
+                Add Category
               </button>
+            ) : null
+          }
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <div className="card p-5 flex flex-col gap-3 group">
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {categories.map((category) => (
+            <div
+              key={category.id}
+              className="card group flex flex-col gap-3 p-5"
+            >
               <div className="flex items-start justify-between">
-                <div className="w-10 h-10 rounded-xl bg-lime/10 border border-lime/20 flex items-center justify-center">
-                  <Tag className="w-5 h-5 text-lime" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-lime/20 bg-lime/10">
+                  <Tag className="h-5 w-5 text-lime" />
                 </div>
+
                 {isAdmin && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
-                      className="p-1.5 rounded-lg text-ink-500 hover:text-lime hover:bg-ink-700 transition-colors"
+                      onClick={() => handleEdit(category)}
+                      className="rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-ink-700 hover:text-lime"
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="h-3.5 w-3.5" />
                     </button>
+
                     <button
-                      className="p-1.5 rounded-lg text-ink-500 hover:text-red-400 hover:bg-red-900/20 transition-colors"
+                      onClick={() => setDeleteId(category.id)}
+                      className="rounded-lg p-1.5 text-ink-500 transition-colors hover:bg-red-900/20 hover:text-red-400"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 )}
               </div>
+
               <div>
-                <h3 className="font-semibold text-ink-100">cat</h3>
-                  <p className="text-xs text-ink-500 mt-0.5 line-clamp-2">
-                  </p>
+                <h3 className="font-semibold text-ink-100">
+                  {category.name}
+                </h3>
+
+                <p className="mt-0.5 line-clamp-2 text-xs text-ink-500">
+                  {category.description || "No description"}
+                </p>
               </div>
-              <div className="flex items-center gap-1.5 mt-auto pt-2 border-t border-ink-700">
-                <Package className="w-3.5 h-3.5 text-ink-500" />
+
+              <div className="mt-auto flex items-center gap-1.5 border-t border-ink-700 pt-2">
+                <Package className="h-3.5 w-3.5 text-ink-500" />
+
                 <span className="text-xs text-ink-400">
-                  20 product
+                  {category.products_count} products
                 </span>
               </div>
             </div>
+          ))}
         </div>
       )}
 
-      {/* Modal */}
       <Modal
         open={modalOpen}
         onClose={closeModal}
         title={editItem ? "Edit Category" : "Add Category"}
         size="sm"
       >
-        <form className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="label">Name *</label>
+
             <input
               className="input"
               placeholder="e.g. Electronics"
+              value={form.name}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  name: e.target.value,
+                })
+              }
               required
             />
           </div>
+
           <div>
             <label className="label">Description</label>
+
             <textarea
               className="input resize-none"
               rows={2}
-              placeholder="Optional…"
+              placeholder="Optional..."
+              value={form.description}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  description: e.target.value,
+                })
+              }
             />
           </div>
+
           <div className="flex justify-end gap-3 pt-1">
             <button
               type="button"
@@ -120,20 +258,28 @@ export default function CategoriesPage() {
             >
               Cancel
             </button>
+
             <button
               type="submit"
               className="btn-primary flex items-center gap-2"
               disabled={isBusy}
             >
-              {isBusy && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+
               {editItem ? "Save Changes" : "Create"}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Delete confirm */}
-     
+      <ConfirmDelete
+        open={Boolean(deleteId)}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleDelete}
+        loading={false}
+        title="Delete Category"
+        description="This will permanently delete the category."
+      />
     </div>
   );
 }
