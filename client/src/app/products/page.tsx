@@ -32,7 +32,7 @@ export default function ProductsPage() {
     try {
       setIsLoading(true);
 
-      const res = await fetch("/api/products");
+      const res = await fetch("http://localhost:4000/api/products");
 
       if (!res.ok) {
         throw new Error("Failed to load products");
@@ -149,7 +149,7 @@ export default function ProductsPage() {
       };
 
       if (editProduct) {
-        const res = await fetch(`/api/products/${editProduct.id}`, {
+        const res = await fetch(`http://localhost:4000/api/products/${editProduct.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -163,16 +163,25 @@ export default function ProductsPage() {
           throw new Error(errorData.error || "Failed to update product");
         }
       } else {
-        const res = await fetch("/api/products", {
+        const token = sessionStorage.getItem("token");
+
+        if (!token) {
+          throw new Error("Authentication required");
+        }
+
+        const res = await fetch("http://localhost:4000/api/products", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(payload),
         });
 
+        const data = await res.json();
+
         if (!res.ok) {
-          throw new Error("Failed to create product");
+          throw new Error(data.error || "Failed to create product");
         }
       }
 
@@ -217,7 +226,7 @@ export default function ProductsPage() {
     try {
       setIsBusy(true);
 
-      const res = await fetch(`/api/products/${deleteId}`, {
+      const res = await fetch(`http://localhost:4000/api/products/${deleteId}`, {
         method: "DELETE",
       });
 
@@ -290,121 +299,123 @@ export default function ProductsPage() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="w-6 h-6 animate-spin text-lime" />
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <EmptyState
-            icon={Package}
-            title="No products found"
-            description="Add your first product to get started"
-            action={
-              <button
-                onClick={openCreate}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add Product
-              </button>
-            }
-          />
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr>
-                    <th className="table-head">Product</th>
-                    <th className="table-head">SKU</th>
-                    <th className="table-head">Category</th>
-                    <th className="table-head">Price</th>
-                    <th className="table-head">Stock</th>
-                    <th className="table-head">Status</th>
-
-                    {isAdmin && (
-                      <th className="table-head text-right">Actions</th>
-                    )}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {filteredProducts.map((p: any) => {
-                    const isLow = p.quantity <= p.min_threshold;
-
-                    return (
-                      <tr key={p.id} className="table-row">
-                        <td className="table-cell font-medium text-ink-100">
-                          {p.name}
-                        </td>
-
-                        <td className="table-cell font-mono text-xs text-ink-400">
-                          {p.sku}
-                        </td>
-
-                        <td className="table-cell text-ink-400">
-                          {p.category_name}
-                        </td>
-
-                        <td className="table-cell">
-                          ₦
-                          {Number(p.price).toLocaleString("en-NG", {
-                            minimumFractionDigits: 2,
-                          })}
-                        </td>
-
-                        <td className="table-cell font-semibold">
-                          {p.quantity}
-                        </td>
-
-                        <td className="table-cell">
-                          {isLow ? (
-                            <span className="badge-warn flex items-center gap-1 w-fit">
-                              <AlertTriangle className="w-3 h-3" />
-                              Low
-                            </span>
-                          ) : (
-                            <span className="badge-in w-fit">OK</span>
-                          )}
-                        </td>
-
-                        {isAdmin && (
-                          <td className="table-cell text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleEdit(p)}
-                                className="p-1.5 rounded-lg text-ink-500 hover:text-lime hover:bg-ink-700 transition-colors"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-
-                              <button
-                                onClick={() => setDeleteId(p.id)}
-                                className="p-1.5 rounded-lg text-ink-500 hover:text-red-400 hover:bg-red-900/20 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+      {isAdmin && (
+        <div className="card overflow-hidden">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="w-6 h-6 animate-spin text-lime" />
             </div>
-
-            <Pagination
-              page={page}
-              totalPages={meta.total_pages}
-              total={meta.total}
-              limit={meta.limit}
-              onPage={setPage}
+          ) : filteredProducts.length === 0 ? (
+            <EmptyState
+              icon={Package}
+              title="No products found"
+              description="Add your first product to get started"
+              action={
+                <button
+                  onClick={openCreate}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Product
+                </button>
+              }
             />
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th className="table-head">Product</th>
+                      <th className="table-head">SKU</th>
+                      <th className="table-head">Category</th>
+                      <th className="table-head">Price</th>
+                      <th className="table-head">Stock</th>
+                      <th className="table-head">Status</th>
+
+                      {isAdmin && (
+                        <th className="table-head text-right">Actions</th>
+                      )}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {filteredProducts.map((p: any) => {
+                      const isLow = p.quantity <= p.min_threshold;
+
+                      return (
+                        <tr key={p.id} className="table-row">
+                          <td className="table-cell font-medium text-ink-100">
+                            {p.name}
+                          </td>
+
+                          <td className="table-cell font-mono text-xs text-ink-400">
+                            {p.sku}
+                          </td>
+
+                          <td className="table-cell text-ink-400">
+                            {p.category_name}
+                          </td>
+
+                          <td className="table-cell">
+                            ₦
+                            {Number(p.price).toLocaleString("en-NG", {
+                              minimumFractionDigits: 2,
+                            })}
+                          </td>
+
+                          <td className="table-cell font-semibold">
+                            {p.quantity}
+                          </td>
+
+                          <td className="table-cell">
+                            {isLow ? (
+                              <span className="badge-warn flex items-center gap-1 w-fit">
+                                <AlertTriangle className="w-3 h-3" />
+                                Low
+                              </span>
+                            ) : (
+                              <span className="badge-in w-fit">OK</span>
+                            )}
+                          </td>
+
+                          {isAdmin && (
+                            <td className="table-cell text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleEdit(p)}
+                                  className="p-1.5 rounded-lg text-ink-500 hover:text-lime hover:bg-ink-700 transition-colors"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                  onClick={() => setDeleteId(p.id)}
+                                  className="p-1.5 rounded-lg text-ink-500 hover:text-red-400 hover:bg-red-900/20 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <Pagination
+                page={page}
+                totalPages={meta.total_pages}
+                total={meta.total}
+                limit={meta.limit}
+                onPage={setPage}
+              />
+            </>
+          )}
+        </div>
+      )}
 
       {/* Modal */}
       <Modal
