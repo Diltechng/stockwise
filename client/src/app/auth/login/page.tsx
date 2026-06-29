@@ -37,14 +37,9 @@ export default function LoginPage() {
 
       console.log(data);
 
-      sessionStorage.setItem("user", JSON.stringify(data.user));
-
       if (!response.ok) {
         throw new Error(data.error || "Failed to login");
       }
-
-      // save token temporarily
-      sessionStorage.setItem("token", data.token);
 
       alert("Login successful");
 

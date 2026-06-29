@@ -4,6 +4,7 @@ import { ChangeEvent, FormEvent, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Package, ArrowRight } from "lucide-react";
+import {useRouter} from "next/navigation"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -14,6 +15,8 @@ export default function RegisterPage() {
   });
 
   const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -42,6 +45,7 @@ export default function RegisterPage() {
 
       if (data.success) {
         toast.success("Account created successfully");
+        router.push("/auth/login");
       } else {
         toast.error(data.error);
       }
