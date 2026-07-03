@@ -16,6 +16,17 @@ const migrate = async () => {
     await client.query(`DROP TABLE IF EXISTS users CASCADE`);
     await client.query(`DROP TABLE IF EXISTS stock CASCADE`);
 
+    //categories
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS categories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+    `);
+    console.log("categories created");
+
     //users
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -28,6 +39,23 @@ const migrate = async () => {
       )
     `);
     console.log("users created");
+
+    //products
+    await client.query(`
+CREATE TABLE IF NOT EXISTS products (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    sku VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    quantity INTEGER DEFAULT 0,
+    min_threshold INTEGER DEFAULT 10,
+    category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+`);
+    console.log("products created");
 
     //stock
     await client.query(`

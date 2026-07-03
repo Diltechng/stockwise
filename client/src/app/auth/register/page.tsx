@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Package, ArrowRight } from "lucide-react";
 
@@ -11,6 +12,8 @@ const ROLE = {
 } as const;
 
 export default function RegisterPage() {
+  const router = useRouter();
+
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
@@ -29,19 +32,25 @@ export default function RegisterPage() {
     }));
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    e: FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
     e.preventDefault();
 
-    try {
-      setLoading(true);
+    setLoading(true);
 
-      const response = await fetch("http://localhost:4000/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    try {
+      const response = await fetch(
+        "http://localhost:4000/api/auth/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(formData),
         },
-        body: JSON.stringify(formData),
-      });
+      );
 
       const data = await response.json();
 
@@ -49,13 +58,26 @@ export default function RegisterPage() {
         throw new Error(data.error || "Failed to create account");
       }
 
-      toast.success("Account created successfully");
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Something went wrong");
-      }
+      toast.success("Account created successfully!");
+
+      setFormData({
+        full_name: "",
+        email: "",
+        password: "",
+        role: ROLE.STAFF,
+      });
+
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 1000);
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Something went wrong",
+      );
     } finally {
       setLoading(false);
     }
@@ -68,12 +90,20 @@ export default function RegisterPage() {
           <Package className="h-5 w-5 text-ink-900" />
         </div>
 
-        <span className="text-xl font-semibold text-ink-50">StockWise</span>
+        <span
+          className="text-xl font-semibold text-ink-50"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          StockWise
+        </span>
       </div>
 
       <div className="card p-8">
-        <h1 className="mb-1 text-2xl font-semibold text-ink-50">
-          Create account
+        <h1
+          className="mb-1 text-2xl font-semibold text-ink-50"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Create Account
         </h1>
 
         <p className="mb-8 text-sm text-ink-400">
@@ -82,7 +112,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label className="label">Full name</label>
+            <label className="label">Full Name</label>
 
             <input
               type="text"
@@ -96,7 +126,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="label">Email address</label>
+            <label className="label">Email Address</label>
 
             <input
               type="email"
@@ -142,16 +172,19 @@ export default function RegisterPage() {
             disabled={loading}
             className="btn-primary mt-2 flex items-center justify-center gap-2"
           >
-            {loading ? "Creating..." : "Create account"}
+            {loading ? "Creating Account..." : "Create Account"}
 
-            <ArrowRight className="h-4 w-4" />
+            {!loading && <ArrowRight className="h-4 w-4" />}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-ink-500">
           Already have an account?{" "}
-          <Link href="/auth/login" className="text-lime hover:text-lime-200">
-            Sign in
+          <Link
+            href="/auth/login"
+            className="text-lime hover:text-lime-200 transition-colors"
+          >
+            Sign In
           </Link>
         </p>
       </div>

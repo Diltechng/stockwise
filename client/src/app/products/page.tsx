@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Search,
@@ -27,31 +28,41 @@ const EMPTY_FORM = {
   min_threshold: "10",
 };
 
+type Category = {
+  id: string;
+  name: string;
+  description?: string;
+};
+
 export default function ProductsPage() {
+  const router = useRouter();
   const loadProducts = async () => {
     try {
       setIsLoading(true);
 
-      const res = await fetch("/api/products");
+      const res = await fetch("http://localhost:4000/api/products", {
+        credentials: "include",
+      });
 
       if (!res.ok) {
-        throw new Error("Failed to load products");
+        router.push("/auth/login");
+        return;
       }
 
-      const data = await res.json();
+      const response = await res.json();
 
-      const formatted = data.map((product: any) => ({
+      const formatted = response.products.map((product: any) => ({
         id: product.id,
         name: product.name,
         sku: product.sku,
         description: product.description,
-        category_id: product.categoryId,
-        category_name: product.category?.name || "No Category",
+        category_id: product.category_id,
+        category_name: product.category_name || "No Category",
         price: product.price,
         quantity: product.quantity,
-        min_threshold: product.minThreshold,
+        min_threshold: product.min_threshold,
       }));
-
+      console.log("Products API:", formatted);
       setProducts(formatted);
     } catch (error) {
       console.error(error);
@@ -67,6 +78,7 @@ export default function ProductsPage() {
     }
 
     loadProducts();
+    loadCategories();
   }, []);
 
   const [user, setUser] = useState<{
@@ -90,10 +102,7 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
 
-  const [categories] = useState([
-    { id: 1, name: "Accessories" },
-    { id: 2, name: "Electronics" },
-  ]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -148,14 +157,20 @@ export default function ProductsPage() {
         min_threshold: Number(form.min_threshold),
       };
 
+      console.log("Payload:", payload);
+
       if (editProduct) {
-        const res = await fetch(`/api/products/${editProduct.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
+        const res = await fetch(
+          `http://localhost:4000/api/products/${editProduct.id}`,
+          {
+            method: "PUT",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
           },
-          body: JSON.stringify(payload),
-        });
+        );
 
         if (!res.ok) {
           const errorData = await res.json();
@@ -163,8 +178,10 @@ export default function ProductsPage() {
           throw new Error(errorData.error || "Failed to update product");
         }
       } else {
-        const res = await fetch("/api/products", {
+        console.log(categories);
+        const res = await fetch("http://localhost:4000/api/products", {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -194,6 +211,21 @@ export default function ProductsPage() {
       setIsBusy(false);
     }
   };
+  const loadCategories = async () => {
+    try {
+      const res = await fetch("http://localhost:4000/api/categories", {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+      console.log(data.categories);
+
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error(error);
+      setCategories([]);
+    }
+  };
 
   const handleEdit = (product: any) => {
     setEditProduct(product);
@@ -217,9 +249,13 @@ export default function ProductsPage() {
     try {
       setIsBusy(true);
 
-      const res = await fetch(`/api/products/${deleteId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `http://localhost:4000/api/products/${deleteId}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        },
+      );
 
       if (!res.ok) {
         throw new Error("Failed to delete product");
@@ -261,25 +297,26 @@ export default function ProductsPage() {
         )}
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
+        {/* Search */}
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-500" />
 
           <input
-            className="input pl-9"
+            className="input pl-9 w-full"
             placeholder="Search by name or SKU…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
+        {/* Category Filter */}
         <select
-          className="input max-w-[200px]"
+          className="input w-full sm:w-56"
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
         >
-          <option value="">All categories</option>
+          <option value="">All Categories</option>
 
           {categories.map((c) => (
             <option key={c.id} value={c.name}>
@@ -430,14 +467,10 @@ export default function ProductsPage() {
             <label className="label">SKU *</label>
 
             <input
-              className={clsx(
-                "input",
-                !!editProduct && "opacity-60 cursor-not-allowed",
-              )}
+              className="input"
               placeholder="e.g. MOU-001"
               value={form.sku}
               onChange={(e) => setForm({ ...form, sku: e.target.value })}
-              disabled={!!editProduct}
               required
             />
           </div>
@@ -448,11 +481,14 @@ export default function ProductsPage() {
             <select
               className="input"
               value={form.category_id}
-              onChange={(e) =>
-                setForm({ ...form, category_id: e.target.value })
-              }
+              onChange={(e) => {
+                setForm((prev) => ({
+                  ...prev,
+                  category_id: e.target.value,
+                }));
+              }}
             >
-              <option value="">No category</option>
+              <option value="">Select Category</option>
 
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -460,6 +496,8 @@ export default function ProductsPage() {
                 </option>
               ))}
             </select>
+            {/* 
+            <p className="text-xs mt-2">{form.category_id}</p> */}
           </div>
 
           <div>

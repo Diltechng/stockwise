@@ -137,16 +137,36 @@ export default function DashboardPage() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const token = sessionStorage.getItem("token");
+useEffect(() => {
+  async function checkAuth() {
+    try {
+      const res = await fetch(
+        "http://localhost:4000/api/auth/profile",
+        {
+          credentials: "include",
+        }
+      );
 
-    if (!token) {
+      if (!res.ok) {
+        router.push("/auth/login");
+        return;
+      }
+
+      const data = await res.json();
+
+      sessionStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
+
+      setIsLoading(false);
+    } catch {
       router.push("/auth/login");
-      return;
     }
+  }
 
-    setIsLoading(false);
-  }, [router]);
+  checkAuth();
+}, [router]);
 
   const stats = {
     total_products: 120,

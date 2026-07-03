@@ -22,8 +22,8 @@ export default function LoginPage() {
     try {
       const formData = new FormData(e.currentTarget);
 
-      const email = formData.get("email");
-      const password = formData.get("password");
+      const email = formData.get("email")?.toString();
+      const password = formData.get("password")?.toString();
 
       const response = await fetch(
         "http://localhost:4000/api/auth/login",
@@ -32,6 +32,7 @@ export default function LoginPage() {
           headers: {
             "Content-Type": "application/json",
           },
+          credentials: "include",
           body: JSON.stringify({
             email,
             password,
@@ -45,26 +46,33 @@ export default function LoginPage() {
         throw new Error(data.error || "Failed to login");
       }
 
-      if (!data.user) {
-        throw new Error("User data not returned");
+      // Verify the cookie/session works
+      const profileResponse = await fetch(
+        "http://localhost:4000/api/auth/profile",
+        {
+          credentials: "include",
+        },
+      );
+
+      if (!profileResponse.ok) {
+        throw new Error("Authentication failed.");
       }
 
-      sessionStorage.setItem("user", JSON.stringify(data.user));
+      const profile = await profileResponse.json();
 
-      if (data.token) {
-        sessionStorage.setItem("token", data.token);
-      }
+      console.log("Logged in user:", profile.user);
 
       toast.success("Login successful");
 
-      router.push("/dashboard");
-    } catch (error: unknown) {
-      console.error("Login error:", error);
+      router.replace("/dashboard");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
 
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to login",
+          : "Login failed",
       );
     } finally {
       setLoading(false);
