@@ -8,6 +8,7 @@ import categoryRoutes from "./routes/category.routes";
 import productRoutes from "./routes/product.routes";
 
 import "./db/pool";
+import stockRoutes from "./routes/stock.routes";
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.get("/", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/stock", stockRoutes);
 
 // 404 Handler
 
@@ -73,5 +75,5 @@ app.use(
 // Start Server
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });

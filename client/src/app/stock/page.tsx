@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -74,43 +74,11 @@ function HistoryRow({ item }: any) {
 }
 
 export default function StockPage() {
-  const [history, setHistory] = useState<any[]>([
-    {
-      id: 1,
-      product_name: "Wireless Mouse",
-      sku: "MOU-001",
-      type: "IN",
-      quantity: 20,
-      user_name: "Admin",
-      note: "New supplier delivery",
-      created_at: new Date(),
-    },
-    {
-      id: 2,
-      product_name: "Mechanical Keyboard",
-      sku: "KEY-002",
-      type: "OUT",
-      quantity: 5,
-      user_name: "Admin",
-      note: "Customer order",
-      created_at: new Date(),
-    },
-  ]);
+  const [history, setHistory] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
 
-  const [products, setProducts] = useState<any[]>([
-    {
-      id: 1,
-      name: "Wireless Mouse",
-      sku: "MOU-001",
-      quantity: 50,
-    },
-    {
-      id: 2,
-      name: "Mechanical Keyboard",
-      sku: "KEY-002",
-      quantity: 30,
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [page, setPage] = useState(1);
 
@@ -125,8 +93,6 @@ export default function StockPage() {
     note: "",
   });
 
-  const isLoading = false;
-
   const meta = {
     total_pages: 1,
     total: history.length,
@@ -136,7 +102,7 @@ export default function StockPage() {
   const filteredProducts = products.filter(
     (p) =>
       p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-      p.sku.toLowerCase().includes(productSearch.toLowerCase()),
+      p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
 
   const resetForm = () => {
@@ -149,157 +115,206 @@ export default function StockPage() {
     setProductSearch("");
   };
 
-  const handleStock = (type: "IN" | "OUT") => {
-    const product = products.find((p) => String(p.id) === form.product_id);
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch("http://localhost:4000/api/products", {
+        credentials: "include",
+      });
 
-    if (!product) return;
+      const data = await res.json();
 
-    const quantity = Number(form.quantity);
-
-    if (type === "OUT" && quantity > product.quantity) {
-      alert("Not enough stock");
-      return;
+      setProducts(data.products || []);
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
     }
+  };
 
-    const newHistory = {
-      id: Date.now(),
-      product_name: product.name,
-      sku: product.sku,
-      type,
-      quantity,
-      user_name: "Admin",
-      note: form.note,
-      created_at: new Date(),
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch("http://localhost:4000/api/stock", {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      setHistory(data.history || []);
+    } catch (error) {
+      console.error("Failed to fetch stock history:", error);
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+
+      await Promise.all([
+        fetchProducts(),
+        fetchHistory(),
+      ]);
+
+      setIsLoading(false);
     };
 
-    setHistory((prev) => [newHistory, ...prev]);
+    loadData();
+  }, []);
 
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === product.id
-          ? {
-              ...p,
-              quantity:
-                type === "IN" ? p.quantity + quantity : p.quantity - quantity,
-            }
-          : p,
-      ),
-    );
+  const handleStock = async (type: "IN" | "OUT") => {
+    try {
+      setIsSubmitting(true);
 
-    resetForm();
+      const res = await fetch("http://localhost:4000/api/stock", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          product_id: Number(form.product_id),
+          quantity: Number(form.quantity),
+          type,
+          note: form.note,
+        }),
+      });
 
-    if (type === "IN") {
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update stock");
+      }
+
+      await Promise.all([
+        fetchProducts(),
+        fetchHistory(),
+      ]);
+
+      resetForm();
       setAddOpen(false);
-    } else {
       setRemoveOpen(false);
+
+      // toast.success("Stock updated successfully");
+    } catch (error: any) {
+      // toast.error(error.message);
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const StockForm = ({ type }: { type: "IN" | "OUT" }) => (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleStock(type);
-      }}
-      className="flex flex-col gap-4"
-    >
-      <div>
-        <label className="label">Search Product</label>
+  <form
+    onSubmit={(e) => {
+      e.preventDefault();
+      handleStock(type);
+    }}
+    className="flex flex-col gap-4"
+  >
+    <div>
+      <label className="label">Select Product</label>
 
-        <input
-          className="input mb-2"
-          placeholder="Search by name or SKU…"
-          value={productSearch}
-          onChange={(e) => setProductSearch(e.target.value)}
-        />
+      <select
+        className="input"
+        required
+        value={form.product_id}
+        onChange={(e) =>
+          setForm({
+            ...form,
+            product_id: e.target.value,
+          })
+        }
+      >
+        <option value="">Select a product</option>
 
-        <select
-          className="input"
-          required
-          value={form.product_id}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              product_id: e.target.value,
-            })
-          }
-        >
-          <option value="">Select a product</option>
+        {filteredProducts.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name} ({p.sku}) — {p.quantity} in stock
+          </option>
+        ))}
+      </select>
+    </div>
 
-          {filteredProducts.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} ({p.sku}) — {p.quantity} in stock
-            </option>
-          ))}
-        </select>
-      </div>
+    <div>
+      <label className="label">Quantity *</label>
 
-      <div>
-        <label className="label">Quantity *</label>
+      <input
+        className="input"
+        type="number"
+        min="1"
+        placeholder="0"
+        required
+        value={form.quantity}
+        onChange={(e) =>
+          setForm({
+            ...form,
+            quantity: e.target.value,
+          })
+        }
+      />
+    </div>
 
-        <input
-          className="input"
-          type="number"
-          min="1"
-          placeholder="0"
-          required
-          value={form.quantity}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              quantity: e.target.value,
-            })
-          }
-        />
-      </div>
+    <div>
+      <label className="label">Note</label>
 
-      <div>
-        <label className="label">Note</label>
+      <input
+        className="input"
+        placeholder={
+          type === "IN"
+            ? "e.g. Supplier delivery"
+            : "e.g. Customer order #123"
+        }
+        value={form.note}
+        onChange={(e) =>
+          setForm({
+            ...form,
+            note: e.target.value,
+          })
+        }
+      />
+    </div>
 
-        <input
-          className="input"
-          placeholder={
-            type === "IN"
-              ? "e.g. Supplier delivery"
-              : "e.g. Customer order #123"
-          }
-          value={form.note}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              note: e.target.value,
-            })
-          }
-        />
-      </div>
+    <div className="flex justify-end gap-3 pt-1">
+      <button
+        type="button"
+        className="btn-secondary"
+        disabled={isSubmitting}
+        onClick={() => {
+          setAddOpen(false);
+          setRemoveOpen(false);
+          resetForm();
+        }}
+      >
+        Cancel
+      </button>
 
-      <div className="flex justify-end gap-3 pt-1">
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={() => {
-            setAddOpen(false);
-            setRemoveOpen(false);
-            resetForm();
-          }}
-        >
-          Cancel
-        </button>
-
-        <button
-          type="submit"
-          className={clsx(
-            "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all active:scale-95",
-            type === "IN"
-              ? "bg-green-600 text-white hover:bg-green-500"
-              : "bg-red-700 text-white hover:bg-red-600",
-          )}
-        >
-          {type === "IN" ? "Add Stock" : "Remove Stock"}
-        </button>
-      </div>
-    </form>
-  );
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className={clsx(
+          "flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed",
+          type === "IN"
+            ? "bg-green-600 text-white hover:bg-green-500"
+            : "bg-red-700 text-white hover:bg-red-600"
+        )}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Processing...
+          </>
+        ) : type === "IN" ? (
+          <>
+            <ArrowUpRight className="w-4 h-4" />
+            Add Stock
+          </>
+        ) : (
+          <>
+            <ArrowDownRight className="w-4 h-4" />
+            Remove Stock
+          </>
+        )}
+      </button>
+    </div>
+  </form>
+);
 
   return (
     <div className="flex flex-col gap-6">
