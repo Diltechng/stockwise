@@ -333,21 +333,27 @@ export default function ProductsPage() {
             <Loader2 className="w-6 h-6 animate-spin text-lime" />
           </div>
         ) : filteredProducts.length === 0 ? (
-          <EmptyState
-            icon={Package}
-            title="No products found"
-            description="Add your first product to get started"
-            action={
-              <button
-                onClick={openCreate}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Add Product
-              </button>
-            }
-          />
-        ) : (
+  <EmptyState
+    icon={Package}
+    title="No products found"
+    description={
+      isAdmin
+        ? "Add your first product to get started"
+        : "No products are available."
+    }
+    action={
+      isAdmin ? (
+        <button
+          onClick={openCreate}
+          className="btn-primary flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Add Product
+        </button>
+      ) : undefined
+    }
+  />
+) : (
           <>
             <div className="overflow-x-auto">
               <table className="w-full">

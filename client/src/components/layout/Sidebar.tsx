@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -11,9 +12,7 @@ import {
   Package2,
   AlertTriangle,
 } from "lucide-react";
-// import Cookies from "js-cookie";
 import { clsx } from "clsx";
-// import { useAuth } from "@/hooks/useAuth";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -22,15 +21,51 @@ const nav = [
   { href: "/stock", label: "Stock", icon: ArrowUpDown },
 ];
 
+type User = {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  // const { user } = useAuth();
 
-  // const handleLogout = () => {
-  //   Cookies.remove("token");
-  //   router.push("/auth/login");
-  // };
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("http://localhost:4000/api/auth/profile", {
+          credentials: "include",
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        setUser(data.user);
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("http://localhost:4000/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      router.push("/auth/login");
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <aside className="w-64 shrink-0 bg-ink-800 border-r border-ink-700 flex flex-col h-screen sticky top-0">
@@ -40,6 +75,7 @@ export default function Sidebar() {
           <div className="w-8 h-8 bg-lime rounded-lg flex items-center justify-center">
             <Package2 className="w-4 h-4 text-ink-900" />
           </div>
+
           <span
             className="text-lg font-semibold text-ink-50"
             style={{ fontFamily: "var(--font-display)" }}
@@ -49,10 +85,12 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Nav */}
+      {/* Navigation */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
         {nav.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + "/");
+          const active =
+            pathname === href || pathname.startsWith(href + "/");
+
           return (
             <Link
               key={href}
@@ -61,7 +99,7 @@ export default function Sidebar() {
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150",
                 active
                   ? "bg-lime text-ink-900"
-                  : "text-ink-300 hover:bg-ink-700 hover:text-ink-50",
+                  : "text-ink-300 hover:bg-ink-700 hover:text-ink-50"
               )}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -70,7 +108,6 @@ export default function Sidebar() {
           );
         })}
 
-        {/* Low stock alert shortcut */}
         <Link
           href="/products?low_stock=true"
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-amber-400 hover:bg-amber-900/20 transition-all duration-150 mt-2"
@@ -84,22 +121,24 @@ export default function Sidebar() {
       <div className="px-3 pb-4 border-t border-ink-700 pt-4">
         <div className="flex items-center gap-3 px-3 py-2.5 mb-1">
           <div className="w-8 h-8 rounded-full bg-ink-600 flex items-center justify-center text-xs font-semibold text-ink-200">
-            {/* {user?.name?.charAt(0).toUpperCase()} */}
-            name
+            {user?.full_name
+              ? user.full_name.charAt(0).toUpperCase()
+              : "U"}
           </div>
+
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-ink-100 truncate">
-              {/* {user?.name} */}
-              name
+              {user?.full_name}
             </p>
+
             <p className="text-xs text-ink-400 capitalize">
-              {/* {user?.role} */}
-              role
+              {user?.role}
             </p>
           </div>
         </div>
+
         <button
-          // onClick={handleLogout}
+          onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-ink-400 hover:bg-ink-700 hover:text-red-400 transition-all duration-150"
         >
           <LogOut className="w-4 h-4" />

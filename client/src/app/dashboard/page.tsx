@@ -138,77 +138,61 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
 useEffect(() => {
-  async function checkAuth() {
+  async function loadDashboard() {
     try {
-      const res = await fetch(
+      // Check login
+      const profileRes = await fetch(
         "http://localhost:4000/api/auth/profile",
         {
           credentials: "include",
         }
       );
 
-      if (!res.ok) {
+      if (!profileRes.ok) {
         router.push("/auth/login");
         return;
       }
 
-      const data = await res.json();
+      const profileData = await profileRes.json();
 
       sessionStorage.setItem(
         "user",
-        JSON.stringify(data.user)
+        JSON.stringify(profileData.user)
       );
 
+      // Fetch dashboard data
+      const dashboardRes = await fetch(
+        "http://localhost:4000/api/dashboard",
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!dashboardRes.ok) {
+        throw new Error("Failed to load dashboard");
+      }
+
+      const dashboardData = await dashboardRes.json();
+
+      setStats(dashboardData);
+
       setIsLoading(false);
-    } catch {
+    } catch (error) {
+      console.error(error);
       router.push("/auth/login");
     }
   }
 
-  checkAuth();
+  loadDashboard();
 }, [router]);
 
-  const stats = {
-    total_products: 120,
-    low_stock_count: 8,
-    total_value: 2500000,
-
-    category_breakdown: [
-      {
-        name: "Electronics",
-        total_quantity: 120,
-      },
-      {
-        name: "Accessories",
-        total_quantity: 80,
-      },
-      {
-        name: "Furniture",
-        total_quantity: 45,
-      },
-    ],
-
-    recent_activity: [
-      {
-        id: 1,
-        product_name: "Wireless Mouse",
-        sku: "MOU-001",
-        type: "IN",
-        quantity: 20,
-        user_name: "Admin",
-        created_at: new Date(),
-      },
-      {
-        id: 2,
-        product_name: "Mechanical Keyboard",
-        sku: "KEY-002",
-        type: "OUT",
-        quantity: 5,
-        user_name: "Admin",
-        created_at: new Date(),
-      },
-    ],
-  };
+const [stats, setStats] = useState({
+  total_products: 0,
+  low_stock_count: 0,
+  total_value: 0,
+  category_breakdown: [] as any[],
+  recent_activity: [] as any[],
+});
 
   if (isLoading) {
     return (
@@ -298,11 +282,11 @@ useEffect(() => {
             </h2>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {stats.recent_activity.map((item) => (
-              <ActivityRow key={item.id} item={item} />
-            ))}
-          </div>
+         <div className="flex-1 overflow-y-auto">
+  {stats.recent_activity.slice(0, 5).map((item) => (
+    <ActivityRow key={item.id} item={item} />
+  ))}
+</div>
         </div>
       </div>
     </div>

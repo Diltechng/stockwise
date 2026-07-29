@@ -62,10 +62,15 @@ export const register = async (
         password,
         role
       )
-      VALUES ($1, $2, $3, $4)
+      VALUES ($1,$2,$3,$4)
       RETURNING id, full_name, email, role, created_at
       `,
-      [full_name, email, hashedPassword, role],
+      [
+        full_name,
+        email,
+        hashedPassword,
+        role,
+      ],
     );
 
     res.status(201).json({
@@ -179,13 +184,51 @@ export const logout = (
   });
 };
 
-// Get Current User
-export const getProfile = (
+// Current User Profile
+export const getProfile = async (
   req: AuthRequest,
   res: Response,
-): void => {
-  res.status(200).json({
-    success: true,
-    user: req.user,
-  });
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: "Unauthorized",
+      });
+      return;
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        full_name,
+        email,
+        role
+      FROM users
+      WHERE id = $1
+      `,
+      [req.user.id],
+    );
+
+    if (result.rows.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      user: result.rows[0],
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
+  }
 };
