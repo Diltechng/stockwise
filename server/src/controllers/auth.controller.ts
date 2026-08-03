@@ -21,7 +21,7 @@ type User = {
 // Register
 export const register = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     const {
@@ -41,7 +41,7 @@ export const register = async (
 
     const existing = await pool.query(
       "SELECT id FROM users WHERE email = $1",
-      [email],
+      [email]
     );
 
     if (existing.rows.length > 0) {
@@ -62,15 +62,20 @@ export const register = async (
         password,
         role
       )
-      VALUES ($1,$2,$3,$4)
-      RETURNING id, full_name, email, role, created_at
+      VALUES ($1, $2, $3, $4)
+      RETURNING
+        id,
+        full_name,
+        email,
+        role,
+        created_at
       `,
       [
         full_name,
         email,
         hashedPassword,
         role,
-      ],
+      ]
     );
 
     res.status(201).json({
@@ -79,7 +84,7 @@ export const register = async (
       user: result.rows[0],
     });
   } catch (error) {
-    console.error(error);
+    console.error("Register Error:", error);
 
     res.status(500).json({
       success: false,
@@ -91,7 +96,7 @@ export const register = async (
 // Login
 export const login = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     const { email, password } = req.body;
@@ -106,7 +111,7 @@ export const login = async (
 
     const result = await pool.query<User>(
       "SELECT * FROM users WHERE email = $1",
-      [email],
+      [email]
     );
 
     if (result.rows.length === 0) {
@@ -121,7 +126,7 @@ export const login = async (
 
     const isMatch = await bcrypt.compare(
       password,
-      user.password,
+      user.password
     );
 
     if (!isMatch) {
@@ -141,7 +146,7 @@ export const login = async (
       jwtSecret,
       {
         expiresIn: "1d",
-      },
+      }
     );
 
     res.cookie("token", token, {
@@ -162,7 +167,7 @@ export const login = async (
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Login Error:", error);
 
     res.status(500).json({
       success: false,
@@ -174,9 +179,13 @@ export const login = async (
 // Logout
 export const logout = (
   _req: Request,
-  res: Response,
+  res: Response
 ): void => {
-  res.clearCookie("token");
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
 
   res.status(200).json({
     success: true,
@@ -184,10 +193,10 @@ export const logout = (
   });
 };
 
-// Current User Profile
+// Get Current User Profile
 export const getProfile = async (
   req: AuthRequest,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     if (!req.user) {
@@ -208,7 +217,7 @@ export const getProfile = async (
       FROM users
       WHERE id = $1
       `,
-      [req.user.id],
+      [req.user.id]
     );
 
     if (result.rows.length === 0) {
@@ -224,7 +233,7 @@ export const getProfile = async (
       user: result.rows[0],
     });
   } catch (error) {
-    console.error(error);
+    console.error("Profile Error:", error);
 
     res.status(500).json({
       success: false,

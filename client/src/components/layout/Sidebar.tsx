@@ -56,10 +56,10 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      // await fetch("http://localhost:4000/api/auth/logout", {
-      //   method: "POST",
-      //   credentials: "include",
-      // });
+      await fetch("http://localhost:4000/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
 
       router.push("/auth/login");
     } catch (error) {

@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   register,
   login,
-  // logout,
+  logout,
   getProfile,
 } from "../controllers/auth.controller";
 import { authenticate } from "../middleware/auth";
@@ -14,7 +14,7 @@ router.post("/register", register);
 router.post("/login", login);
 
 // Protected routes
-// router.post("/logout", authenticate, logout);
+router.post("/logout", authenticate, logout);
 router.get("/profile", authenticate, getProfile);
 
 export default router;
