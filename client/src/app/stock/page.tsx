@@ -73,6 +73,192 @@ function HistoryRow({ item }: any) {
   );
 }
 
+const StockForm = ({ type, fetchProducts, fetchHistory, resetForm, filteredProducts,  close }: {
+  type: "IN" | "OUT";
+  fetchProducts: () => Promise<void>;
+  fetchHistory: () => Promise<void>;
+  filteredProducts: any[];
+  resetForm: () => void;
+  close: () => void;
+}) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+const [form, setForm] = useState({
+  product_id: "",
+  quantity: "",
+  note: "",
+});
+  const handleStock = async (type: "IN" | "OUT") => {
+    try {
+      setIsSubmitting(true);
+
+      const res = await fetch("http://localhost:4000/api/stock", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          product_id: Number(form.product_id),
+          quantity: Number(form.quantity),
+          type,
+          note: form.note,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update stock");
+      }
+
+      await Promise.all([
+  fetchProducts(),
+  fetchHistory(),
+]);
+
+setForm({
+  product_id: "",
+  quantity: "",
+  note: "",
+});
+
+resetForm(); // clears the search
+close();
+
+      // toast.success("Stock updated successfully");
+    } catch (error: any) {
+      // toast.error(error.message);
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleStock(type);
+      }}
+      className="flex flex-col gap-4"
+    >
+      <div>
+        <label className="label">Select Product</label>
+
+        <select
+          className="input"
+          required
+          value={form.product_id}
+          onChange={(e) =>
+  setForm((prev) => ({
+    ...prev,
+    product_id: e.target.value,
+  }))
+}
+        >
+          <option value="">Select a product</option>
+
+          {filteredProducts.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name} ({p.sku}) — {p.quantity} in stock
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="label">Quantity *</label>
+
+        <input
+  className="input"
+  type="number"
+  min="1"
+  placeholder="0"
+  required
+  value={form.quantity}
+  onChange={(e) =>
+    setForm((prev) => ({
+      ...prev,
+      quantity: e.target.value,
+    }))
+  }
+/>
+      </div>
+
+      <div>
+        <label className="label">Note</label>
+
+        <input
+  className="input"
+  placeholder={
+    type === "IN"
+      ? "e.g. Supplier delivery"
+      : "e.g. Customer order #123"
+  }
+  value={form.note}
+  onChange={(e) =>
+    setForm((prev) => ({
+      ...prev,
+      note: e.target.value,
+    }))
+  }
+/>
+      </div>
+
+      <div className="flex justify-end gap-3 pt-1">
+        <button
+          type="button"
+          className="btn-secondary"
+          disabled={isSubmitting}
+         onClick={() => {
+  setForm({
+    product_id: "",
+    quantity: "",
+    note: "",
+  });
+
+  resetForm();
+  close();
+}}
+        >
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={clsx(
+            "flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed",
+            type === "IN"
+              ? "bg-green-600 text-white hover:bg-green-500"
+              : "bg-red-700 text-white hover:bg-red-600"
+          )}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Processing...
+            </>
+          ) : type === "IN" ? (
+            <>
+              <ArrowUpRight className="w-4 h-4" />
+              Add Stock
+            </>
+          ) : (
+            <>
+              <ArrowDownRight className="w-4 h-4" />
+              Remove Stock
+            </>
+          )}
+        </button>
+      </div>
+    </form>
+  )
+}
+
+
+
 export default function StockPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -87,11 +273,6 @@ export default function StockPage() {
 
   const [productSearch, setProductSearch] = useState("");
 
-  const [form, setForm] = useState({
-    product_id: "",
-    quantity: "",
-    note: "",
-  });
 
   const meta = {
     total_pages: 1,
@@ -105,15 +286,7 @@ export default function StockPage() {
       p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
 
-  const resetForm = () => {
-    setForm({
-      product_id: "",
-      quantity: "",
-      note: "",
-    });
-
-    setProductSearch("");
-  };
+  const resetForm = () => { setProductSearch(""); };
 
   const fetchProducts = async () => {
     try {
@@ -158,163 +331,7 @@ export default function StockPage() {
     loadData();
   }, []);
 
-  const handleStock = async (type: "IN" | "OUT") => {
-    try {
-      setIsSubmitting(true);
 
-      const res = await fetch("http://localhost:4000/api/stock", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          product_id: Number(form.product_id),
-          quantity: Number(form.quantity),
-          type,
-          note: form.note,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Failed to update stock");
-      }
-
-      await Promise.all([
-        fetchProducts(),
-        fetchHistory(),
-      ]);
-
-      resetForm();
-      setAddOpen(false);
-      setRemoveOpen(false);
-
-      // toast.success("Stock updated successfully");
-    } catch (error: any) {
-      // toast.error(error.message);
-      alert(error.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const StockForm = ({ type }: { type: "IN" | "OUT" }) => (
-  <form
-    onSubmit={(e) => {
-      e.preventDefault();
-      handleStock(type);
-    }}
-    className="flex flex-col gap-4"
-  >
-    <div>
-      <label className="label">Select Product</label>
-
-      <select
-        className="input"
-        required
-        value={form.product_id}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            product_id: e.target.value,
-          })
-        }
-      >
-        <option value="">Select a product</option>
-
-        {filteredProducts.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name} ({p.sku}) — {p.quantity} in stock
-          </option>
-        ))}
-      </select>
-    </div>
-
-    <div>
-      <label className="label">Quantity *</label>
-
-      <input
-        className="input"
-        type="number"
-        min="1"
-        placeholder="0"
-        required
-        value={form.quantity}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            quantity: e.target.value,
-          })
-        }
-      />
-    </div>
-
-    <div>
-      <label className="label">Note</label>
-
-      <input
-        className="input"
-        placeholder={
-          type === "IN"
-            ? "e.g. Supplier delivery"
-            : "e.g. Customer order #123"
-        }
-        value={form.note}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            note: e.target.value,
-          })
-        }
-      />
-    </div>
-
-    <div className="flex justify-end gap-3 pt-1">
-      <button
-        type="button"
-        className="btn-secondary"
-        disabled={isSubmitting}
-        onClick={() => {
-          setAddOpen(false);
-          setRemoveOpen(false);
-          resetForm();
-        }}
-      >
-        Cancel
-      </button>
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className={clsx(
-          "flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed",
-          type === "IN"
-            ? "bg-green-600 text-white hover:bg-green-500"
-            : "bg-red-700 text-white hover:bg-red-600"
-        )}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Processing...
-          </>
-        ) : type === "IN" ? (
-          <>
-            <ArrowUpRight className="w-4 h-4" />
-            Add Stock
-          </>
-        ) : (
-          <>
-            <ArrowDownRight className="w-4 h-4" />
-            Remove Stock
-          </>
-        )}
-      </button>
-    </div>
-  </form>
-);
 
   return (
     <div className="flex flex-col gap-6">
@@ -395,32 +412,43 @@ export default function StockPage() {
           </>
         )}
       </div>
-
-      {/* Add Stock Modal */}
       <Modal
-        open={addOpen}
-        onClose={() => {
-          setAddOpen(false);
-          resetForm();
-        }}
-        title="Add Stock"
-        size="sm"
-      >
-        <StockForm type="IN" />
-      </Modal>
+  open={addOpen}
+  onClose={() => {
+    setAddOpen(false);
+    resetForm();
+  }}
+  title="Add Stock"
+  size="sm"
+>
+  <StockForm
+    type="IN"
+    fetchProducts={fetchProducts}
+    fetchHistory={fetchHistory}
+    filteredProducts={filteredProducts}
+    resetForm={resetForm}
+    close={() => setAddOpen(false)}
+  />
+</Modal>
 
-      {/* Remove Stock Modal */}
-      <Modal
-        open={removeOpen}
-        onClose={() => {
-          setRemoveOpen(false);
-          resetForm();
-        }}
-        title="Remove Stock"
-        size="sm"
-      >
-        <StockForm type="OUT" />
-      </Modal>
+<Modal
+  open={removeOpen}
+  onClose={() => {
+    setRemoveOpen(false);
+    resetForm();
+  }}
+  title="Remove Stock"
+  size="sm"
+>
+  <StockForm
+    type="OUT"
+    fetchProducts={fetchProducts}
+    fetchHistory={fetchHistory}
+    filteredProducts={filteredProducts}
+    resetForm={resetForm}
+    close={() => setRemoveOpen(false)}
+  />
+</Modal>
     </div>
   );
 }
