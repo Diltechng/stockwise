@@ -1,35 +1,37 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
   ArrowDownRight,
   Loader2,
   ArrowUpDown,
-  Search,
 } from "lucide-react";
-import { toast } from "sonner";
-import { clsx } from "clsx";
-import { stockService } from "@/lib/services/stock.service";
-import { productsService } from "@/lib/services/products.service";
-import { StockHistory } from "@/types";
+import clsx from "clsx";
+
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import Pagination from "@/components/ui/Pagination";
 
-const EMPTY_FORM = { product_id: "", quantity: "", note: "" };
+const EMPTY_FORM = {
+  product_id: "",
+  quantity: "",
+  note: "",
+};
 
-function HistoryRow({ item }: { item: StockHistory }) {
+function HistoryRow({ item }: any) {
   const isIn = item.type === "IN";
+
   return (
     <tr className="table-row">
       <td className="table-cell">
         <div>
           <p className="font-medium text-ink-100">{item.product_name}</p>
+
           <p className="text-xs text-ink-500 font-mono">{item.sku}</p>
         </div>
       </td>
+
       <td className="table-cell">
         <span className={clsx(isIn ? "badge-in" : "badge-out")}>
           {isIn ? (
@@ -37,9 +39,11 @@ function HistoryRow({ item }: { item: StockHistory }) {
           ) : (
             <ArrowDownRight className="w-3 h-3" />
           )}
+
           {item.type}
         </span>
       </td>
+
       <td className="table-cell">
         <span
           className={clsx(
@@ -51,8 +55,11 @@ function HistoryRow({ item }: { item: StockHistory }) {
           {item.quantity}
         </span>
       </td>
+
       <td className="table-cell text-ink-400">{item.user_name}</td>
+
       <td className="table-cell text-ink-500 text-xs">{item.note || "—"}</td>
+
       <td className="table-cell text-ink-400 text-xs">
         {new Date(item.created_at).toLocaleString("en-GB", {
           day: "numeric",
@@ -66,17 +73,92 @@ function HistoryRow({ item }: { item: StockHistory }) {
   );
 }
 
-export default function StockPage() {
-  const history = [];
-  const meta = [];
+const StockForm = ({ type, fetchProducts, fetchHistory, resetForm, filteredProducts,  close }: {
+  type: "IN" | "OUT";
+  fetchProducts: () => Promise<void>;
+  fetchHistory: () => Promise<void>;
+  filteredProducts: any[];
+  resetForm: () => void;
+  close: () => void;
+}) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const StockForm = ({ type }: { type: "IN" | "OUT" }) => (
-    <form className="flex flex-col gap-4">
+const [form, setForm] = useState({
+  product_id: "",
+  quantity: "",
+  note: "",
+});
+  const handleStock = async (type: "IN" | "OUT") => {
+    try {
+      setIsSubmitting(true);
+
+      const res = await fetch("http://localhost:4000/api/stock", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          product_id: Number(form.product_id),
+          quantity: Number(form.quantity),
+          type,
+          note: form.note,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to update stock");
+      }
+
+      await Promise.all([
+  fetchProducts(),
+  fetchHistory(),
+]);
+
+setForm({
+  product_id: "",
+  quantity: "",
+  note: "",
+});
+
+resetForm(); // clears the search
+close();
+
+      // toast.success("Stock updated successfully");
+    } catch (error: any) {
+      // toast.error(error.message);
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleStock(type);
+      }}
+      className="flex flex-col gap-4"
+    >
       <div>
-        <label className="label">Search Product</label>
-        <input className="input mb-2" placeholder="Search by name or SKU…" />
-        <select className="input" required>
+        <label className="label">Select Product</label>
+
+        <select
+          className="input"
+          required
+          value={form.product_id}
+          onChange={(e) =>
+  setForm((prev) => ({
+    ...prev,
+    product_id: e.target.value,
+  }))
+}
+        >
           <option value="">Select a product</option>
+
           {filteredProducts.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name} ({p.sku}) — {p.quantity} in stock
@@ -84,47 +166,172 @@ export default function StockPage() {
           ))}
         </select>
       </div>
+
       <div>
         <label className="label">Quantity *</label>
+
         <input
-          className="input"
-          type="number"
-          min="1"
-          placeholder="0"
-          required
-        />
+  className="input"
+  type="number"
+  min="1"
+  placeholder="0"
+  required
+  value={form.quantity}
+  onChange={(e) =>
+    setForm((prev) => ({
+      ...prev,
+      quantity: e.target.value,
+    }))
+  }
+/>
       </div>
+
       <div>
         <label className="label">Note</label>
+
         <input
-          className="input"
-          placeholder={
-            type === "IN"
-              ? "e.g. Supplier delivery"
-              : "e.g. Customer order #123"
-          }
-          value={form.note}
-        />
+  className="input"
+  placeholder={
+    type === "IN"
+      ? "e.g. Supplier delivery"
+      : "e.g. Customer order #123"
+  }
+  value={form.note}
+  onChange={(e) =>
+    setForm((prev) => ({
+      ...prev,
+      note: e.target.value,
+    }))
+  }
+/>
       </div>
+
       <div className="flex justify-end gap-3 pt-1">
-        <button type="button" className="btn-secondary">
+        <button
+          type="button"
+          className="btn-secondary"
+          disabled={isSubmitting}
+         onClick={() => {
+  setForm({
+    product_id: "",
+    quantity: "",
+    note: "",
+  });
+
+  resetForm();
+  close();
+}}
+        >
           Cancel
         </button>
+
         <button
           type="submit"
-          disabled={addMutation.isPending || removeMutation.isPending}
+          disabled={isSubmitting}
           className={clsx(
-            "flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all active:scale-95 disabled:opacity-40",
+            "flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed",
             type === "IN"
               ? "bg-green-600 text-white hover:bg-green-500"
-              : "bg-red-700 text-white hover:bg-red-600",
+              : "bg-red-700 text-white hover:bg-red-600"
           )}
         >
-          {type === "IN" ? "Add Stock" : "Remove Stock"}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Processing...
+            </>
+          ) : type === "IN" ? (
+            <>
+              <ArrowUpRight className="w-4 h-4" />
+              Add Stock
+            </>
+          ) : (
+            <>
+              <ArrowDownRight className="w-4 h-4" />
+              Remove Stock
+            </>
+          )}
         </button>
       </div>
     </form>
+  )
+}
+
+
+
+export default function StockPage() {
+  const [history, setHistory] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [page, setPage] = useState(1);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [removeOpen, setRemoveOpen] = useState(false);
+
+  const [productSearch, setProductSearch] = useState("");
+
+
+  const meta = {
+    total_pages: 1,
+    total: history.length,
+    limit: 10,
+  };
+
+  const filteredProducts = products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
+
+  const resetForm = () => { setProductSearch(""); };
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch("http://localhost:4000/api/products", {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      setProducts(data.products || []);
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch("http://localhost:4000/api/stock", {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      setHistory(data.history || []);
+    } catch (error) {
+      console.error("Failed to fetch stock history:", error);
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+
+      await Promise.all([
+        fetchProducts(),
+        fetchHistory(),
+      ]);
+
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, []);
+
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -132,25 +339,27 @@ export default function StockPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="page-title">Stock</h1>
+
           <p className="text-sm text-ink-400 mt-1">Track all stock movements</p>
         </div>
+
         <div className="flex items-center gap-3">
-          <button className="btn-danger flex items-center gap-2">
-            <ArrowDownRight className="w-4 h-4" /> Remove Stock
+          <button
+            onClick={() => setRemoveOpen(true)}
+            className="btn-danger flex items-center gap-2"
+          >
+            <ArrowDownRight className="w-4 h-4" />
+            Remove Stock
           </button>
-          <button className="flex items-center gap-2 bg-green-700 text-white font-medium px-5 py-2.5 rounded-xl hover:bg-green-600 active:scale-95 transition-all text-sm">
-            <ArrowUpRight className="w-4 h-4" /> Add Stock
+
+          <button
+            onClick={() => setAddOpen(true)}
+            className="flex items-center gap-2 bg-green-700 text-white font-medium px-5 py-2.5 rounded-xl hover:bg-green-600 active:scale-95 transition-all text-sm"
+          >
+            <ArrowUpRight className="w-4 h-4" />
+            Add Stock
           </button>
         </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-3">
-        <select className="input max-w-[160px]">
-          <option value="">All movements</option>
-          <option value="IN">Stock In</option>
-          <option value="OUT">Stock Out</option>
-        </select>
       </div>
 
       {/* Table */}
@@ -172,13 +381,19 @@ export default function StockPage() {
                 <thead>
                   <tr>
                     <th className="table-head">Product</th>
+
                     <th className="table-head">Type</th>
+
                     <th className="table-head">Qty</th>
+
                     <th className="table-head">By</th>
+
                     <th className="table-head">Note</th>
+
                     <th className="table-head">Date</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {history.map((item) => (
                     <HistoryRow key={item.id} item={item} />
@@ -186,46 +401,54 @@ export default function StockPage() {
                 </tbody>
               </table>
             </div>
-            {meta && meta.total_pages > 1 && (
-              <Pagination
-                page={page}
-                totalPages={meta.total_pages}
-                total={meta.total}
-                limit={meta.limit}
-                onPage={setPage}
-              />
-            )}
+
+            <Pagination
+              page={page}
+              totalPages={meta.total_pages}
+              total={meta.total}
+              limit={meta.limit}
+              onPage={setPage}
+            />
           </>
         )}
       </div>
-
-      {/* Add Stock Modal */}
       <Modal
-        open={addOpen}
-        onClose={() => {
-          setAddOpen(false);
-          setForm(EMPTY_FORM);
-          setProductSearch("");
-        }}
-        title="Add Stock"
-        size="sm"
-      >
-        <StockForm type="IN" />
-      </Modal>
+  open={addOpen}
+  onClose={() => {
+    setAddOpen(false);
+    resetForm();
+  }}
+  title="Add Stock"
+  size="sm"
+>
+  <StockForm
+    type="IN"
+    fetchProducts={fetchProducts}
+    fetchHistory={fetchHistory}
+    filteredProducts={filteredProducts}
+    resetForm={resetForm}
+    close={() => setAddOpen(false)}
+  />
+</Modal>
 
-      {/* Remove Stock Modal */}
-      <Modal
-        open={removeOpen}
-        onClose={() => {
-          setRemoveOpen(false);
-          setForm(EMPTY_FORM);
-          setProductSearch("");
-        }}
-        title="Remove Stock"
-        size="sm"
-      >
-        <StockForm type="OUT" />
-      </Modal>
+<Modal
+  open={removeOpen}
+  onClose={() => {
+    setRemoveOpen(false);
+    resetForm();
+  }}
+  title="Remove Stock"
+  size="sm"
+>
+  <StockForm
+    type="OUT"
+    fetchProducts={fetchProducts}
+    fetchHistory={fetchHistory}
+    filteredProducts={filteredProducts}
+    resetForm={resetForm}
+    close={() => setRemoveOpen(false)}
+  />
+</Modal>
     </div>
   );
 }

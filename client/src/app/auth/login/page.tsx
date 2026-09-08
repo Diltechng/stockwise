@@ -1,21 +1,91 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Cookies from "js-cookie";
+import { Package } from "lucide-react";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Eye, EyeOff, Package, ArrowRight, Loader2 } from "lucide-react";
-import { authService } from "@/lib/services/auth.service";
 
 export default function LoginPage() {
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
+
+  const handleSubmit = async (
+    e: FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
+    e.preventDefault();
+
+    setLoading(true);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+
+      const email = formData.get("email")?.toString();
+      const password = formData.get("password")?.toString();
+
+      const response = await fetch(
+        "http://localhost:4000/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to login");
+      }
+
+      // Verify the cookie/session works
+      const profileResponse = await fetch(
+        "http://localhost:4000/api/auth/profile",
+        {
+          credentials: "include",
+        },
+      );
+
+      if (!profileResponse.ok) {
+        throw new Error("Authentication failed.");
+      }
+
+      const profile = await profileResponse.json();
+
+      console.log("Logged in user:", profile.user);
+
+      toast.success("Login successful");
+
+      router.replace("/dashboard");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Login failed",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md">
-      {/* Logo */}
       <div className="flex items-center gap-3 mb-10">
         <div className="w-10 h-10 bg-lime rounded-xl flex items-center justify-center">
           <Package className="w-5 h-5 text-ink-900" />
         </div>
+
         <span
           className="text-xl font-semibold text-ink-50"
           style={{ fontFamily: "var(--font-display)" }}
@@ -31,6 +101,7 @@ export default function LoginPage() {
         >
           Sign in
         </h1>
+
         <p className="text-sm text-ink-400 mb-8">
           Access your inventory dashboard
         </p>
@@ -38,8 +109,10 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
             <label className="label">Email address</label>
+
             <input
               type="email"
+              name="email"
               className="input"
               placeholder="you@company.com"
               required
@@ -48,25 +121,32 @@ export default function LoginPage() {
 
           <div>
             <label className="label">Password</label>
+
             <div className="relative">
               <input
                 type={showPw ? "text" : "password"}
+                name="password"
                 className="input pr-11"
                 placeholder="••••••••"
                 required
               />
+
               <button
                 type="button"
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-300"
-              ></button>
+                onClick={() => setShowPw((prev) => !prev)}
+              >
+                {showPw ? "Hide" : "Show"}
+              </button>
             </div>
           </div>
 
           <button
             type="submit"
+            disabled={loading}
             className="btn-primary flex items-center justify-center gap-2 mt-2"
           >
-            Sign in
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
@@ -79,23 +159,6 @@ export default function LoginPage() {
             Register
           </Link>
         </p>
-      </div>
-
-      {/* Demo credentials */}
-      <div className="mt-4 p-4 rounded-xl border border-ink-700/50 bg-ink-800/40">
-        <p className="text-xs text-ink-500 font-medium mb-2 uppercase tracking-wider">
-          Demo credentials
-        </p>
-        <div className="flex flex-col gap-1">
-          <p className="text-xs text-ink-400">
-            <span className="text-lime">Admin:</span> admin@stockwise.com /
-            admin123
-          </p>
-          <p className="text-xs text-ink-400">
-            <span className="text-ink-300">Staff:</span> staff@stockwise.com /
-            staff123
-          </p>
-        </div>
       </div>
     </div>
   );

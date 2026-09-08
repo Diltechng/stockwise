@@ -10,6 +10,7 @@
     "setup": "cd server && npm run db:migrate && npm run db:seed"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "concurrently": "^8.2.2"
   }
 }
