@@ -51,17 +51,7 @@ export default function CategoriesPage() {
   const [form, setForm] = useState(EMPTY_FORM);
 
   const isAdmin = user?.role === "admin";
-
-  useEffect(() => {
-    const raw = sessionStorage.getItem("user");
-
-    if (raw) {
-      setUser(JSON.parse(raw));
-    }
-
-    loadCategories();
-  }, []);
-
+  
   const loadCategories = async () => {
     try {
       setLoading(true);
@@ -88,6 +78,16 @@ export default function CategoriesPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("user");
+
+    if (raw) {
+      setUser(JSON.parse(raw));
+    }
+
+    loadCategories();
+  }, [loadCategories]);
 
   const openCreate = () => {
     setEditCategory(null);

@@ -13,11 +13,11 @@ import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import Pagination from "@/components/ui/Pagination";
 
-const EMPTY_FORM = {
-  product_id: "",
-  quantity: "",
-  note: "",
-};
+// const EMPTY_FORM = {
+//   product_id: "",
+//   quantity: "",
+//   note: "",
+// };
 
 function HistoryRow({ item }: any) {
   const isIn = item.type === "IN";
@@ -264,7 +264,7 @@ export default function StockPage() {
   const [products, setProducts] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [page, setPage] = useState(1);
 
