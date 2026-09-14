@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { ApiResponse, DashboardStats, Product } from "@/types";
+import { ApiResponse, DashboardStats } from "@/types";
 
 export const dashboardService = {
   getStats: () => api.get<ApiResponse<DashboardStats>>("/dashboard/stats"),

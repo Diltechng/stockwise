@@ -1,8 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
 import Sidebar from "@/components/layout/Sidebar";
 
 export default function DashboardLayout({
