@@ -17,6 +17,7 @@ import Modal from "@/components/ui/Modal";
 import ConfirmDelete from "@/components/ui/ConfirmDelete";
 import EmptyState from "@/components/ui/EmptyState";
 import Pagination from "@/components/ui/Pagination";
+import { BASE_API_URL } from "@/lib/env";
 
 const EMPTY_FORM = {
   name: "",
@@ -40,7 +41,7 @@ export default function ProductsPage() {
     try {
       setIsLoading(true);
 
-      const res = await fetch("http://localhost:4000/api/products", {
+      const res = await fetch(`${BASE_API_URL}/products`, {
         credentials: "include",
       });
 
@@ -161,7 +162,7 @@ export default function ProductsPage() {
 
       if (editProduct) {
         const res = await fetch(
-          `http://localhost:4000/api/products/${editProduct.id}`,
+          `${BASE_API_URL}/products/${editProduct.id}`,
           {
             method: "PUT",
             credentials: "include",
@@ -179,7 +180,7 @@ export default function ProductsPage() {
         }
       } else {
         console.log(categories);
-        const res = await fetch("http://localhost:4000/api/products", {
+        const res = await fetch(`${BASE_API_URL}/products`, {
           method: "POST",
           credentials: "include",
           headers: {
@@ -213,7 +214,7 @@ export default function ProductsPage() {
   };
   const loadCategories = async () => {
     try {
-      const res = await fetch("http://localhost:4000/api/categories", {
+      const res = await fetch(`${BASE_API_URL}/categories`, {
         credentials: "include",
       });
 
@@ -250,7 +251,7 @@ export default function ProductsPage() {
       setIsBusy(true);
 
       const res = await fetch(
-        `http://localhost:4000/api/products/${deleteId}`,
+        `${BASE_API_URL}/products/${deleteId}`,
         {
           method: "DELETE",
           credentials: "include",

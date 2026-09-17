@@ -5,6 +5,7 @@ import { Package } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { BASE_API_URL } from "@/lib/env";
 
 export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
@@ -26,7 +27,7 @@ export default function LoginPage() {
       const password = formData.get("password")?.toString();
 
       const response = await fetch(
-        "http://localhost:4000/api/auth/login",
+        `${BASE_API_URL}/auth/login`,
         {
           method: "POST",
           headers: {
@@ -48,7 +49,7 @@ export default function LoginPage() {
 
       // Verify the cookie/session works
       const profileResponse = await fetch(
-        "http://localhost:4000/api/auth/profile",
+        `${BASE_API_URL}/auth/profile`,
         {
           credentials: "include",
         },

@@ -12,6 +12,7 @@ import clsx from "clsx";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import Pagination from "@/components/ui/Pagination";
+import { BASE_API_URL } from "@/lib/env";
 
 // const EMPTY_FORM = {
 //   product_id: "",
@@ -92,7 +93,7 @@ const [form, setForm] = useState({
     try {
       setIsSubmitting(true);
 
-      const res = await fetch("http://localhost:4000/api/stock", {
+      const res = await fetch(`${BASE_API_URL}/stock`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -290,7 +291,7 @@ export default function StockPage() {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch("http://localhost:4000/api/products", {
+      const res = await fetch(`${BASE_API_URL}/products`, {
         credentials: "include",
       });
 
@@ -304,7 +305,7 @@ export default function StockPage() {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch("http://localhost:4000/api/stock", {
+      const res = await fetch(`${BASE_API_URL}/stock`, {
         credentials: "include",
       });
 
