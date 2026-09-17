@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Package, ArrowRight } from "lucide-react";
+import { BASE_API_URL } from "@/lib/env";
 
 const ROLE = {
   STAFF: "staff",
@@ -41,7 +42,7 @@ export default function RegisterPage() {
 
     try {
       const response = await fetch(
-        "http://localhost:4000/api/auth/register",
+        `${BASE_API_URL}/auth/register`,
         {
           method: "POST",
           headers: {

@@ -13,6 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { BASE_API_URL } from "@/lib/env";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -37,7 +38,7 @@ export default function Sidebar() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch("http://localhost:4000/api/auth/profile", {
+        const res = await fetch(`${BASE_API_URL}/auth/profile`, {
           credentials: "include",
         });
 
@@ -56,7 +57,7 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      await fetch("http://localhost:4000/api/auth/logout", {
+      await fetch(`${BASE_API_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
       });

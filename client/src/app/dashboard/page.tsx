@@ -24,6 +24,7 @@ import {
 } from "recharts";
 
 import clsx from "clsx";
+import { BASE_API_URL } from "@/lib/env";
 
 function StatCard({
   label,
@@ -142,7 +143,7 @@ useEffect(() => {
     try {
       // Check login
       const profileRes = await fetch(
-        "http://localhost:4000/api/auth/profile",
+        `${BASE_API_URL}/auth/profile`,
         {
           credentials: "include",
         }
@@ -162,7 +163,7 @@ useEffect(() => {
 
       // Fetch dashboard data
       const dashboardRes = await fetch(
-        "http://localhost:4000/api/dashboard",
+        `${BASE_API_URL}/dashboard`,
         {
           credentials: "include",
         }

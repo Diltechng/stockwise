@@ -14,6 +14,7 @@ import {
 import Modal from "@/components/ui/Modal";
 import ConfirmDelete from "@/components/ui/ConfirmDelete";
 import EmptyState from "@/components/ui/EmptyState";
+import { BASE_API_URL } from "@/lib/env";
 
 type Category = {
   id: string;
@@ -57,7 +58,7 @@ export default function CategoriesPage() {
       setLoading(true);
 
       const res = await fetch(
-        "http://localhost:4000/api/categories",
+        `${BASE_API_URL}/categories`,
         {
           credentials: "include",
         }
@@ -122,7 +123,7 @@ export default function CategoriesPage() {
 
       if (editCategory) {
         const res = await fetch(
-          `http://localhost:4000/api/categories/${editCategory.id}`,
+          `${BASE_API_URL}/categories/${editCategory.id}`,
           {
             method: "PUT",
             credentials: "include",
@@ -140,7 +141,7 @@ export default function CategoriesPage() {
         }
       } else {
         const res = await fetch(
-          "http://localhost:4000/api/categories",
+          `${BASE_API_URL}/categories`,
           {
             method: "POST",
             credentials: "include",
@@ -181,7 +182,7 @@ export default function CategoriesPage() {
       setBusy(true);
 
       const res = await fetch(
-        `http://localhost:4000/api/categories/${deleteId}`,
+        `${BASE_API_URL}/categories/${deleteId}`,
         {
           method: "DELETE",
           credentials: "include",
