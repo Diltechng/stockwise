@@ -88,7 +88,7 @@ export default function CategoriesPage() {
     }
 
     loadCategories();
-  }, [loadCategories]);
+  }, []);
 
   const openCreate = () => {
     setEditCategory(null);
